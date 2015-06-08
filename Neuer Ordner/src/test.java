@@ -11,6 +11,7 @@ import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.unsupervised.attribute.Add;
 import weka.core.converters.CSVSaver;
 import weka.core.converters.ArffSaver;
+import weka.filters.supervised.attribute.AttributeSelection;
 
 public class test {
  
@@ -19,11 +20,14 @@ public class test {
     	DataSource source = new DataSource("C:/train.csv");
     	DataSource sourcetest = new DataSource("C:/test.csv");
     	Instances datatest = sourcetest.getDataSet();
+    	System.out.println("loaded testdata");
     	Instances data = source.getDataSet();
+    	System.out.println("loaded traindata");
+    	
     	//set class attribute
     	data.setClassIndex(data.numAttributes()-1);
     	
-    	// 2. numeric attribute
+    	// add dummy class to unlabeled
         Add filter = new Add();
         filter.setAttributeIndex("last");
         filter.setAttributeName("target1");
@@ -56,10 +60,21 @@ public class test {
 		//saver.setDestination(new File("./data/test.arff"));   // **not** necessary in 3.5.4 and later
 		Csaver.writeBatch();
 		
-		
-        /*KStar k = new KStar();
+       
+        System.out.println("added -1 class label to testdata");
+        
+        //attribute selecetion
+        AttributeSelection selector = new AttributeSelection();
+        selector.setInputFormat(data);
+        data = selector.useFilter(data, selector);
+        datatest = selector.useFilter(datatest, selector);
+        
+        System.out.println("reduced dims");
+        
+    	KStar k = new KStar();
+
     	k.buildClassifier(data);
-    	System.out.println("loaded");
+    	
     	for(int i = 0; i < datatest.numInstances();i++)
         {
     		
