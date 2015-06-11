@@ -16,6 +16,8 @@ import weka.core.converters.ArffSaver;
 import weka.filters.supervised.attribute.AttributeSelection;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.J48;
+import weka.classifiers.functions.LibSVM;
+import java.io.FileWriter;
 
 public class test {
  
@@ -81,7 +83,7 @@ public class test {
 			   
 	    System.out.println("added -1 class label to testdata");
 	
-	    /*		
+			
 		//attribute selecetion
 		AttributeSelection selector = new AttributeSelection();
 		selector.setInputFormat(data);
@@ -89,7 +91,7 @@ public class test {
 		datatest = selector.useFilter(datatest, selector);
 		
 		System.out.println("reduced dims");
-		*/
+		
 		
 		J48 k = new J48();
 		
@@ -101,14 +103,14 @@ public class test {
 
 		System.out.println(eval.toSummaryString("\nResults\n======\n", false));
 		
-/*		for(int i = 0; i < datatest.numInstances();i++)
+	for(int i = 0; i < datatest.numInstances();i++)
 		{
 			
 		    double score = k.classifyInstance(datatest.instance(i));
 		    double[] vv= k.distributionForInstance(datatest.instance(i));
 		    System.out.println("class");
 		    
-		}*/
+		}
 		
 		System.out.println("dunno");
 	}
@@ -118,12 +120,14 @@ public class test {
 
     public static void main(String[] args) throws Exception{
     	// read data from file
-    	DataSource source = new DataSource("C:/train.csv");
-    	DataSource sourcetest = new DataSource("C:/test.csv");
+    	DataSource source = new DataSource("./MachineLearning/train.csv");
+		DataSource sourcetest = new DataSource("./MachineLearning/test.csv");
     	Instances datatest = sourcetest.getDataSet();
     	System.out.println("loaded testdata");
     	Instances data = source.getDataSet();
     	System.out.println("loaded traindata");
+    	
+    	FileWriter writer = new FileWriter("./MachineLearning/result.csv"); 
     	
     	//set class attribute
     	data.setClassIndex(data.numAttributes()-1);
@@ -150,26 +154,42 @@ public class test {
         datatest = selector.useFilter(datatest, selector);
         
         System.out.println("reduced dims");
-        /*
-    	IBk k = new IBk();
+        
+        IBk k = new IBk();
 
     	k.buildClassifier(data);
-    	for( int i = 0; i < k.getOptions().length; i++)
+    	//k.setProbabilityEstimates(true);
+    	/*for( int i = 0; i < k.getOptions().length; i++)
     		System.out.println(k.getOptions()[i]);
+    */	
+    /*	Evaluation eval = new Evaluation(data);
+		eval.evaluateModel(k, datatest);
+
+		System.out.println(eval.toSummaryString("\nResults\n======\n", false));
+    */	
     	for(int i = 0; i < datatest.numInstances();i++)
         {
-    		
+    		//double[] score = k.distributionForInstance(datatest.instance(i));
             double score = k.classifyInstance(datatest.instance(i));
-            //double[] vv= k.distributionForInstance(datatest.instance(i));
-            System.out.println(i + ": class: "+ score);
-            datatest.instance(i).setClassValue(score);
+            double[] vv= k.distributionForInstance(datatest.instance(i));
+            for (double probability : vv)
+            {
+            writer.append(String.valueOf(probability));
+    	    writer.append(',');
+    	    
+            }
+            writer.append('\n');
+            System.out.println(i);
+            //datatest.instance(i).setClassValue(score);
             
         }
     	
+    	writer.close();
+    	
         System.out.println("classified datatest");
-        */
+        
 
-		 ArffSaver Asaver = new ArffSaver();
+		/* ArffSaver Asaver = new ArffSaver();
 		 Asaver.setInstances(datatest);
 		 Asaver.setFile(new File("./MachineLearning/testminusone.arff"));
 		 //Asaver.setDestination(new File("./data/test.arff"));   // **not** necessary in 3.5.4 and later
@@ -189,5 +209,6 @@ public class test {
 		//saver.setFile(new File("./MachineLearning/test.csv"));
 		//saver.setDestination(new File("./data/test.arff"));   // **not** necessary in 3.5.4 and later
 		Csaver.writeBatch();
+		*/
     }
 }
