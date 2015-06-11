@@ -1,4 +1,5 @@
 import java.io.File;
+import java.util.Random;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -51,9 +52,9 @@ public class test {
         datatest = selector.useFilter(datatest, selector);
         
         System.out.println("reduced dims");
-        /*
+        
     	IBk k = new IBk();
-
+    	
     	k.buildClassifier(data);
     	for( int i = 0; i < k.getOptions().length; i++)
     		System.out.println(k.getOptions()[i]);
@@ -61,14 +62,19 @@ public class test {
         {
     		
             double score = k.classifyInstance(datatest.instance(i));
-            //double[] vv= k.distributionForInstance(datatest.instance(i));
-            System.out.println(i + ": class: "+ score);
+            double[] vv= k.distributionForInstance(datatest.instance(i));
+           // if(i %1000==0)System.out.println(i + ": class: "+ score);
+            for(double sco : vv){System.out.print(sco);System.out.print(" ; ");}System.out.println("");
             datatest.instance(i).setClassValue(score);
             
         }
     	
+    	System.out.println("bla");
+    	 Evaluation eval = new Evaluation(data);
+    	 eval.crossValidateModel(k, datatest, 10, new Random(1));
+    	System.out.println("bla3");
         System.out.println("classified datatest");
-        */
+       
 
 		 ArffSaver Asaver = new ArffSaver();
 		 Asaver.setInstances(datatest);
