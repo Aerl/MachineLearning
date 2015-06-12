@@ -127,7 +127,7 @@ public class test {
     	Instances data = source.getDataSet();
     	System.out.println("loaded traindata");
     	
-    	FileWriter writer = new FileWriter("./MachineLearning/result.csv"); 
+    	CSVWriter writer = new CSVWriter("./MachineLearning/result.csv"); 
     	
     	//set class attribute
     	data.setClassIndex(data.numAttributes()-1);
@@ -172,19 +172,13 @@ public class test {
     		//double[] score = k.distributionForInstance(datatest.instance(i));
             double score = k.classifyInstance(datatest.instance(i));
             double[] vv= k.distributionForInstance(datatest.instance(i));
-            for (double probability : vv)
-            {
-            writer.append(String.valueOf(probability));
-    	    writer.append(',');
-    	    
-            }
-            writer.append('\n');
-            System.out.println(i);
+            writer.addInstance(i, vv);
+            if (i%1000==0)System.out.println(i);
             //datatest.instance(i).setClassValue(score);
             
         }
     	
-    	writer.close();
+    	writer.closeFile();
     	
         System.out.println("classified datatest");
         
