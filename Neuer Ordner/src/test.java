@@ -144,7 +144,7 @@ public class test {
     	Instances data = source.getDataSet();
     	System.out.println("loaded traindata");
     	
-    	FileWriter writer = new FileWriter("./MachineLearning/result.csv"); 
+    	CSVWriter writer = new CSVWriter("./MachineLearning/result.csv"); 
     	
     	//set class attribute
     	data.setClassIndex(data.numAttributes()-1);
@@ -210,7 +210,7 @@ public class test {
             
         }
     	
-    	writer.close();
+    	writer.closeFile();
     	
         System.out.println("classified datatest");
         
