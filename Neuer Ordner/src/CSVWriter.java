@@ -25,14 +25,13 @@ public class CSVWriter {
 	{
 		try 
 		{
-			writer.append(String.valueOf(id));
+			writer.append(String.valueOf(id+1));
+			
+			
 			for (double probability : distribution)
 			{
-
-				writer.append(String.valueOf(probability));
-
 				writer.append(',');
-
+				writer.append(String.valueOf(probability));
 			}
 			writer.append('\n');
 		}
