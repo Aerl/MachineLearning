@@ -24,9 +24,11 @@ import java.util.Random;
 public class test {
 
 
-	public static void semisupervisedknn(Instances data, Instances datatest) throws Exception
+	public static Instances semisupervisedknn(Instances data, Instances datatest) throws Exception
 	{
 
+		Instances datatestOrig = new Instances(datatest);
+		
 		Random rand = new Random();
 
 		while(datatest.numInstances() != 0)
@@ -40,14 +42,40 @@ public class test {
 			datatest.delete(randomNum);
 			if(datatest.numInstances() % 1000 == 0)System.out.println(datatest.numInstances() + ":" + randomNum + ":" + score);
 		}
+		
+		return getResultforTestdata(datatestOrig, data);
 
-	}    
+	}  
+	
+	public static Instances getResultforTestdata(Instances testOrig, Instances trainAfterClassification)
+	{
+		Instances InstancesLabeled = new Instances(testOrig, testOrig.numInstances());
+		trainAfterClassification.sort(0);
+
+		for (int i = 0; i<testOrig.numInstances(); i++)
+		{
+			int idOrig = (int)testOrig.instance(i).value(0);
+			System.out.println(idOrig);
+			Instance temp = trainAfterClassification.instance(idOrig-1);
+			int idTrain = (int)temp.value(0);
+			System.out.println(idTrain);
+
+			if (idOrig == idTrain)
+			{
+				InstancesLabeled.add(temp);
+			}    		
+		}
+
+		assert testOrig.numInstances() == InstancesLabeled.numInstances();
+
+		return InstancesLabeled;
+	}
 
 	public static void main(String[] args) throws Exception
 	{
 
-		boolean knnBool = false;
-		boolean svmBool = true;
+		boolean knnBool = true;
+		boolean svmBool = false;
 		boolean semBool = false;
 
 		double eps = Math.pow(10, -15);
@@ -146,30 +174,4 @@ public class test {
 		} 	
 	}
 
-
-
-
-	public static Instances getResultforTestdata(Instances testOrig, Instances trainAfterClassification)
-	{
-		Instances InstancesLabeled = new Instances(testOrig, testOrig.numInstances());
-		trainAfterClassification.sort(0);
-
-		for (int i = 0; i<testOrig.numInstances(); i++)
-		{
-			int idOrig = (int)testOrig.instance(i).value(0);
-			System.out.println(idOrig);
-			Instance temp = trainAfterClassification.instance(idOrig-1);
-			int idTrain = (int)temp.value(0);
-			System.out.println(idTrain);
-
-			if (idOrig == idTrain)
-			{
-				InstancesLabeled.add(temp);
-			}    		
-		}
-
-		assert testOrig.numInstances() == InstancesLabeled.numInstances();
-
-		return InstancesLabeled;
-	}
 }
