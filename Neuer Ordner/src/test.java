@@ -1,6 +1,4 @@
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -21,102 +19,135 @@ import weka.classifiers.trees.J48;
 import weka.classifiers.functions.LibSVM;
 
 import java.io.FileWriter;
+import java.util.Random;
 
 public class test {
 
-	public static void main(String[] args) throws Exception{
-		// read data from file
-		DataSource source = new DataSource("./MachineLearning/train.csv");
+ 
+    public static void semisupervisedknn(Instances data, Instances datatest) throws Exception
+    {
+    	
+    	Random rand = new Random();
+
+    	while(datatest.numInstances() != 0)
+    	{
+    		 IBk knn = new IBk();
+    		 knn.buildClassifier(data);
+    		 int randomNum = rand.nextInt((datatest.numInstances() - 0) + 1);
+    		 double score = knn.classifyInstance(datatest.instance(randomNum));
+    		 datatest.instance(randomNum).setClassValue(score);
+    		 data.add(datatest.instance(randomNum));   		
+    		 datatest.delete(randomNum);
+    		 if(datatest.numInstances() % 1000 == 0)System.out.println(datatest.numInstances() + ":" + randomNum + ":" + score);
+    	}
+
+    }    
+
+    public static void main(String[] args) throws Exception
+    {
+    	
+    	boolean knnBool = false;
+    	boolean svmBool = true;
+    	boolean semBool = false;
+    	
+    	double eps = Math.pow(10, -15);
+    	
+    	boolean submissionOutput = false;
+    	
+    	// read data from file
+    	DataSource source = new DataSource("./MachineLearning/train.csv");
+		DataSource sourcetest = new DataSource("./MachineLearning/test.csv");
 		Instances data = source.getDataSet();
-		System.out.println("loaded traindata");
-
-		DataSource sourcetest = new DataSource("./MachineLearning/testminusone.csv");
-		Instances datatest = sourcetest.getDataSet();
-		System.out.println("loaded testdata");
-
-		Instances help = getResultforTestdata(data, data);
-
-		//set class attribute
 		data.setClassIndex(data.numAttributes()-1);
-		datatest.setClassIndex(data.numAttributes()-1);
-
-		/*
-
-    	// add dummy class to unlabeled
+    	Instances datatest = sourcetest.getDataSet();
+    	
+    	System.out.println("Loaded datasets!");
+    	
+    	//add empty class label to test data
+    	
         Add filter = new Add();
         filter.setAttributeIndex("last");
-        filter.setNominalLabels("Class_1,Class_2,Class_3,Class_4,Class_5,Class_6,Class_7,Class_8,Class_9,");
+        filter.setNominalLabels("Class_1,Class_2,Class_3,Class_4,Class_5,Class_6,Class_7,Class_8,Class_9");
         filter.setAttributeName("target");
         filter.setInputFormat(datatest);
         datatest = filter.useFilter(datatest, filter);
-    	for ( int i = 0; i < datatest.numInstances(); i++){
-
+    	for ( int i = 0; i < datatest.numInstances(); i++)
+ 	{
     		datatest.instance(i).setValue(datatest.numAttributes() - 1,"Class_1");
     	}
         datatest.setClassIndex(datatest.numAttributes()-1);
 
         System.out.println("added class label to testdata");
 
-         ArffSaver Asaver = new ArffSaver();
-		 Asaver.setInstances(datatest);
-		 Asaver.setFile(new File("./MachineLearning/testminusone.arff"));
-		 Asaver.writeBatch();
+        //attribute selection
+        AttributeSelection selector = new AttributeSelection();
+        selector.setInputFormat(data);
+        data = selector.useFilter(data, selector);
+        datatest = selector.useFilter(datatest, selector);
+        
+        System.out.println("Attributes Selected!");
+        
+        
+   if(knnBool){
+	   System.out.println("NN Classifier!");
+        //knn classifier
+        IBk knnClassifier = new IBk();
+        Evaluation knnev = new Evaluation(data);
+        knnev.crossValidateModel(knnClassifier, data, 2, new Random(1));
+        System.out.println(knnev.toSummaryString());
+        
+        		//TODO: calc logloss
+        
+        if(submissionOutput){
+        	CSVWriter writer_knn = new CSVWriter("./MachineLearning/result_knn.csv"); 
+        	knnClassifier.buildClassifier(data);
+        	for(int i = 0; i < datatest.numInstances();i++)
+            {
+                double[] vv= knnClassifier.distributionForInstance(datatest.instance(i));
+                writer_knn.addInstance(i, vv);
+                if(i%(datatest.numInstances()/100) == 0)System.out.print(i);
+                //datatest.instance(i).setClassValue(score);
+            }
+        	System.out.println("!");
+        	writer_knn.closeFile();
+        }
+   }
+   if(svmBool){    
+	   System.out.println("SVM Classifier");
+        //svm classifier
+        LibSVM svmClassifier = new LibSVM();
+        
+        Evaluation svmev = new Evaluation(data);
+        svmev.crossValidateModel(svmClassifier, data, 2, new Random(1));
+        System.out.println(svmev.toSummaryString());
+        
+        if(submissionOutput){
+        	CSVWriter writer_svm = new CSVWriter("./MachineLearning/result_svm.csv"); 
+        	svmClassifier.buildClassifier(data);
+        	for(int i = 0; i < datatest.numInstances();i++)
+            {
+                double[] vv= svmClassifier.distributionForInstance(datatest.instance(i));
+                writer_svm.addInstance(i, vv);
+                if(i%(datatest.numInstances()/100) == 0)System.out.print(i);
+                //datatest.instance(i).setClassValue(score);
+            }
+        	System.out.println("!");
+        	writer_svm.closeFile();
+        }
+   }
+   if(semBool){
+	   System.out.println("Semi Classifier");
+        //semisupervised classifier
+        Random rand = new Random(1234);
+    	Instances semiTrain = data.trainCV(2,1,rand);
+    	Instances semiTest = data.trainCV(2, 1, rand);
+    	
+    	semisupervisedknn(semiTrain, semiTest);
+   } 	
+}
+    	
+       
 
-		CSVSaver Csaver = new CSVSaver();
-		Csaver.setInstances(datatest);
-
-		String[] newOp = new String[4];
-
-		newOp[0] = "-i";
-		newOp[1] = "./MachineLearning/testminusone.arff";
-		newOp[2] = "-o";
-		newOp[3] = "./MachineLearning/testminusone.csv";
-
-		Csaver.setOptions(newOp);
-		//saver.setFile(new File("./MachineLearning/test.csv"));
-		//saver.setDestination(new File("./data/test.arff"));   // **not** necessary in 3.5.4 and later
-		Csaver.writeBatch();
-		 */
-
-
-		//attribute selection
-		AttributeSelection selector = new AttributeSelection();
-		selector.setInputFormat(data);
-		data = selector.useFilter(data, selector);
-		datatest = selector.useFilter(datatest, selector);
-
-		System.out.println("reduced dims");
-
-		/*
-        LibSVM k = new LibSVM();
-
-    	k.buildClassifier(data);
-
-    	weka.core.SerializationHelper.write("./MachineLearning/classifier.model", k);
-		 */
-
-		ObjectInputStream ois = new ObjectInputStream(new FileInputStream("./MachineLearning/classifier.model"));
-		Classifier k = (Classifier) ois.readObject();
-		ois.close();
-
-		CSVWriter writer = new CSVWriter("./MachineLearning/result.csv"); 
-
-		for(int i = 0; i < datatest.numInstances();i++)
-		{
-			//double[] score = k.distributionForInstance(datatest.instance(i));
-			double score = k.classifyInstance(datatest.instance(i));
-			double[] vv= k.distributionForInstance(datatest.instance(i));
-			writer.addInstance(i, vv);
-			if (i%1000==0)System.out.println(i);
-			//datatest.instance(i).setClassValue(score);
-
-		}
-
-		writer.closeFile();
-
-		System.out.println("classified datatest");
-
-	}
 
 	public static Instances getResultforTestdata(Instances testOrig, Instances trainAfterClassification)
 	{
@@ -141,4 +172,5 @@ public class test {
 
 		return InstancesLabeled;
 	}
+    }
 }
