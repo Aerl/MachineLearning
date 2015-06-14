@@ -35,7 +35,7 @@ public class test {
 		{
 			IBk knn = new IBk();
 			knn.buildClassifier(data);
-			int randomNum = rand.nextInt((datatest.numInstances() - 0) + 1);
+			int randomNum = rand.nextInt(datatest.numInstances());
 			double score = knn.classifyInstance(datatest.instance(randomNum));
 			datatest.instance(randomNum).setClassValue(score);
 			data.add(datatest.instance(randomNum));   		
@@ -74,9 +74,9 @@ public class test {
 	public static void main(String[] args) throws Exception
 	{
 
-		boolean knnBool = true;
+		boolean knnBool = false;
 		boolean svmBool = false;
-		boolean semBool = false;
+		boolean semBool = true;
 
 		double eps = Math.pow(10, -15);
 
@@ -167,8 +167,8 @@ public class test {
 			System.out.println("Semi Classifier");
 			//semisupervised classifier
 			Random rand = new Random(1234);
-			Instances semiTrain = data.trainCV(2,1,rand);
-			Instances semiTest = data.trainCV(2, 1, rand);
+			Instances semiTrain = data.trainCV(2,0,rand);
+			Instances semiTest = data.trainCV(2, 1,rand);
 
 			semisupervisedknn(semiTrain, semiTest);
 		} 	
