@@ -1,0 +1,13 @@
+--- Sun Jun 14 00:21:43 CEST 2015 ---
+
+--- Sun Jun 14 00:34:40 CEST 2015 ---
+
+1/2 Knn Logloss is: 4.180756352349407
+
+2/2 Knn Logloss is: 4.413272385046018
+
+1/2 SVM Logloss is: 13.979443420934198
+
+2/2 SVM Logloss is: 14.741588286638967
+
+-+-Sun Jun 14 12:50:32 CEST 2015-+-

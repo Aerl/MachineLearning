@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -52,6 +53,39 @@ public class test {
     	double eps = Math.pow(10, -15);
     	return Math.max(Math.min(1-eps,  probability), eps);
     }
+    
+    
+    public static void saveInstances(Instances dataSet, String fileName) throws IOException
+    	{
+    		ArffSaver Asaver = new ArffSaver();
+    		Asaver.setInstances(dataSet);
+    		Asaver.setFile(new File(fileName));
+    		Asaver.writeBatch();
+    	}
+    
+    public static Instances getResultforTestdata(Instances testOrig, Instances trainAfterClassification)
+    	{
+    		Instances InstancesLabeled = new Instances(testOrig, testOrig.numInstances());
+    		trainAfterClassification.sort(0);
+    
+    		for (int i = 0; i<testOrig.numInstances(); i++)
+    		{
+    			int idOrig = (int)testOrig.instance(i).value(0);
+    			System.out.println(idOrig);
+    			Instance temp = trainAfterClassification.instance(idOrig-1);
+    			int idTrain = (int)temp.value(0);
+    			System.out.println(idTrain);
+    
+    			if (idOrig == idTrain)
+    			{
+    				InstancesLabeled.add(temp);
+    			}    		
+    		}
+    
+    		assert testOrig.numInstances() == InstancesLabeled.numInstances();
+    
+    		return InstancesLabeled;
+    	}
     
     public static void main(String[] args) throws Exception{
     	
