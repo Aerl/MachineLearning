@@ -43,11 +43,35 @@ public class test {
     		 datatest.instance(randomNum).setClassValue(score);
     		 data.add(datatest.instance(randomNum));   		
     		 datatest.delete(randomNum);
-    		 if(datatest.numInstances() % (length/100) == 0)System.out.print(".");
+    		 if(datatest.numInstances() % (length/100) == 0)System.out.print(".");	 
     	}
     	System.out.println("!\n");
     	return logloss;
-    }    
+    }
+    
+    
+public static void semisupervisedknnSUBMISSION(Instances data, Instances datatest) throws Exception{
+    	
+    	Random rand = new Random();
+    	int length = datatest.numInstances();
+    	CSVWriter writer = new CSVWriter("./MachineLearning/result_knn.csv"); 
+    	
+    	while(datatest.numInstances() != 0)
+    	{	//setup
+    		 IBk knn = new IBk();
+    		 knn.buildClassifier(data);
+    		 int randomNum = rand.nextInt(datatest.numInstances());
+    		 double score = knn.classifyInstance(datatest.instance(randomNum)); 
+    		 double[] vv = knn.distributionForInstance(datatest.instance(randomNum));
+    		 writer.addInstance((int)datatest.instance(randomNum).value(0), vv);
+    		 datatest.instance(randomNum).setClassValue(score);
+    		 data.add(datatest.instance(randomNum));   		
+    		 datatest.delete(randomNum);
+    		 if(datatest.numInstances() % (length/100) == 0)System.out.print(".");	 
+    	}
+    	writer.closeFile();
+    	System.out.println("!\n");
+    }
 
     public static double normProb(double probability){
     	double eps = Math.pow(10, -15);
@@ -228,78 +252,31 @@ public class test {
    if(semBool){
 	   	System.out.println("Semi Classifier");
         //semisupervised classifier
-   		Instances semiTrain = data.trainCV(2,0,rand);
-   		Instances semiTest = data.trainCV(2, 1, rand);
+   		Instances semiTrainTE = data.trainCV(2,0,rand);
+   		Instances semiTrain = semiTrainTE.trainCV(2,0,rand);
+   		Instances semiTest = semiTrainTE.trainCV(2, 1, rand);
     	
-   		Instances semiTrain2 = semiTrain;
-   		Instances SemiTest2 = semiTest;
+   		Instances semiTrain2 = semiTrainTE.trainCV(2,0,rand);;
+   		Instances SemiTest2 = semiTrainTE.trainCV(2,1,rand);;
    		
-   		
-    	double fold1 = semisupervisedknn(semiTrain, semiTest);
+   		System.out.println("TRAINSIZE: " + semiTrain.numInstances()+" TESTSIZE: "  + semiTest.numInstances());
+   		double fold1 = semisupervisedknn(semiTrain, semiTest);
     	System.out.println("1/2 Sem Logloss is: " + fold1 + "\n");
     	result_writer.write("1/2 Sem Logloss is: " + fold1 + "\n");
+    	System.out.println("TRAINSIZE2: " + semiTrain2.numInstances()+" TESTSIZE2: "  + SemiTest2.numInstances());
     	
     	double fold2 = semisupervisedknn(SemiTest2, semiTrain2);
     	System.out.println("2/2 Sem Logloss is: " + fold2 + "\n");
     	result_writer.write("2/2 Sem Logloss is: " + fold2 + "\n");
+    	if(submissionOutput){
+    		
+    	semisupervisedknnSUBMISSION(data, datatest);
+    		
+    	}
    } 	
    		Date end = new Date();
    		result_writer.write("-+-"+ end.toString() + "-+-");
    		result_writer.close();
        
-/*
-        IBk k = new IBk();
-
-    	k.buildClassifier(data);
-
-
-    	writer.write("id,Class_1,Class_2,Class_3,Class_4,Class_5,Class_6,Class_7,Class_8,Class_9\n");
-    	
-    	for(int i = 0; i < datatest.numInstances();i++)
-        {
-    		//double[] score = k.distributionForInstance(datatest.instance(i));
-            double score = k.classifyInstance(datatest.instance(i));
-            double[] vv= k.distributionForInstance(datatest.instance(i));
-            writer.write(String.valueOf(i+1));
-
-            for (double probability : vv)
-            {
-            	writer.write(",");
-            	if(probability > 0.5) probability = 1;
-            	else probability = 0;
-            	writer.write(String.valueOf(probability));
-            }
-            writer.write('\n');
-            if(i%1000 == 0)System.out.println(i);
-            //datatest.instance(i).setClassValue(score);
-            
-        }
-    	
-    	writer.closeFile();
-    	
-        System.out.println("classified datatest");
-        
-
-		/* ArffSaver Asaver = new ArffSaver();
-		 Asaver.setInstances(datatest);
-		 Asaver.setFile(new File("./MachineLearning/testminusone.arff"));
-		 //Asaver.setDestination(new File("./data/test.arff"));   // **not** necessary in 3.5.4 and later
-		 Asaver.writeBatch();
-       
-		CSVSaver Csaver = new CSVSaver();
-		Csaver.setInstances(datatest);
-		
-		String[] newOp = new String[4];
-		
-		newOp[0] = "-i";
-		newOp[1] = "./MachineLearning/testminusone.arff";
-		newOp[2] = "-o";
-		newOp[3] = "./MachineLearning/testminusone.csv";
-		
-		Csaver.setOptions(newOp);
-		//saver.setFile(new File("./MachineLearning/test.csv"));
-		//saver.setDestination(new File("./data/test.arff"));   // **not** necessary in 3.5.4 and later
-		Csaver.writeBatch();
-		*/
     }
 }
