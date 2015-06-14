@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -69,6 +70,14 @@ public class test {
 		assert testOrig.numInstances() == InstancesLabeled.numInstances();
 
 		return InstancesLabeled;
+	}
+	
+	public static void saveInstances(Instances dataSet, String fileName) throws IOException
+	{
+		ArffSaver Asaver = new ArffSaver();
+		Asaver.setInstances(dataSet);
+		Asaver.setFile(new File(fileName));
+		Asaver.writeBatch();
 	}
 
 	public static void main(String[] args) throws Exception
