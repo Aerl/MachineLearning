@@ -14,42 +14,56 @@ import weka.filters.unsupervised.attribute.Add;
 import weka.core.converters.CSVSaver;
 import weka.core.converters.ArffSaver;
 import weka.filters.supervised.attribute.AttributeSelection;
+import weka.filters.unsupervised.attribute.PrincipalComponents;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.J48;
 import weka.classifiers.functions.LibSVM;
 
 import java.io.FileWriter;
+import java.util.Date;
 import java.util.Random;
 
 public class test {
  
-    public static void semisupervisedknn(Instances data, Instances datatest) throws Exception{
+    public static double semisupervisedknn(Instances data, Instances datatest) throws Exception{
     	
     	Random rand = new Random();
-
+    	double logloss = 0;
+    	int length = data.numInstances();
     	while(datatest.numInstances() != 0)
-    	{
+    	{	//setup
     		 IBk knn = new IBk();
     		 knn.buildClassifier(data);
-    		 int randomNum = rand.nextInt((datatest.numInstances() - 0) + 1);
+    		 int randomNum = rand.nextInt(datatest.numInstances());
+    		 
     		 double score = knn.classifyInstance(datatest.instance(randomNum));
+    		 logloss += Math.log10(normProb(knn.distributionForInstance(datatest.instance(randomNum))[(int)datatest.instance(randomNum).classValue()]))/-length;
+    		 
     		 datatest.instance(randomNum).setClassValue(score);
     		 data.add(datatest.instance(randomNum));   		
     		 datatest.delete(randomNum);
-    		 if(datatest.numInstances() % 1000 == 0)System.out.println(datatest.numInstances() + ":" + randomNum + ":" + score);
+    		 if(datatest.numInstances() % (length/100) == 0)System.out.print(".");
     	}
-
+    	System.out.println("!\n");
+    	return logloss;
     }    
 
+    public static double normProb(double probability){
+    	double eps = Math.pow(10, -15);
+    	return Math.max(Math.min(1-eps,  probability), eps);
+    }
+    
     public static void main(String[] args) throws Exception{
     	
     	boolean knnBool = false;
-    	boolean svmBool = true;
-    	boolean semBool = false;
+    	boolean svmBool = false;
+    	boolean semBool = true;
     	
-    	double eps = Math.pow(10, -15);
-    	
-    	boolean submissionOutput = false;
+    	boolean submissionOutput = true;
+    	File res = new File("results.txt");
+    	FileWriter result_writer = new FileWriter(res, true);
+    	Date now = new Date();
+    	result_writer.write("--- " + now.toString() + " ---\n");
     	
     	// read data from file
     	DataSource source = new DataSource("./MachineLearning/train.csv");
@@ -75,24 +89,50 @@ public class test {
         datatest.setClassIndex(datatest.numAttributes()-1);
     	
         //attribute selection
-        AttributeSelection selector = new AttributeSelection();
+        PrincipalComponents selector = new PrincipalComponents();
         selector.setInputFormat(data);
         data = selector.useFilter(data, selector);
         datatest = selector.useFilter(datatest, selector);
         
         System.out.println("Attributes Selected!");
         
+        Random rand = new Random(1234);
+    	Instances knnTrain = data.trainCV(2,0,rand);
+    	Instances knnTest = data.trainCV(2, 1, rand);
+    	Instances svmTrain = data.trainCV(2,0,rand);
+    	Instances svmTest = data.trainCV(2, 1, rand);
         
    if(knnBool){
-	   System.out.println("NN Classifier!");
-        //knn classifier
+	    System.out.println("NN Classifier!");
         IBk knnClassifier = new IBk();
-        Evaluation knnev = new Evaluation(data);
-        knnev.crossValidateModel(knnClassifier, data, 2, new Random(1));
-        System.out.println(knnev.toSummaryString());
-        
-        		//TODO: calc logloss
-        
+        									//Evaluation knnev = new Evaluation(data);
+        									//knnev.crossValidateModel(knnClassifier, data, 2, new Random(1));
+        									//System.out.println(knnev.toSummaryString());
+        //calc logloss
+        double logloss = 0;
+        knnClassifier.buildClassifier(knnTrain);
+        for(int i = 0; i < knnTest.numInstances();i++)
+        {
+            logloss += Math.log10(normProb(knnClassifier.distributionForInstance(knnTest.instance(i))[(int)knnTest.instance(i).classValue()]))/-knnTest.numInstances();
+           
+            if(i%(knnTest.numInstances()/100) == 0)System.out.print(".");
+        }
+    	System.out.println("!");
+    	System.out.println("1/2 Knn Logloss is: " + logloss);
+    	result_writer.write("1/2 Knn Logloss is: " + logloss + "\n");
+    	
+    	 logloss = 0;
+         knnClassifier.buildClassifier(knnTest);
+         for(int i = 0; i < knnTrain.numInstances();i++)
+         {      		
+             logloss += Math.log10(normProb(knnClassifier.distributionForInstance(knnTrain.instance(i))[(int)knnTrain.instance(i).classValue()]))/-knnTrain.numInstances();
+            
+             if(i%(knnTest.numInstances()/100) == 0)System.out.print(".");
+         }
+     	System.out.println("!");
+     	System.out.println("2/2 Knn Logloss is: " + logloss);
+     	result_writer.write("2/2 Knn Logloss is: " + logloss + "\n");
+     	
         if(submissionOutput){
         	CSVWriter writer_knn = new CSVWriter("./MachineLearning/result_knn.csv"); 
         	knnClassifier.buildClassifier(data);
@@ -100,7 +140,7 @@ public class test {
             {
                 double[] vv= knnClassifier.distributionForInstance(datatest.instance(i));
                 writer_knn.addInstance(i, vv);
-                if(i%(datatest.numInstances()/100) == 0)System.out.print(i);
+                if(i%(datatest.numInstances()/100) == 0)System.out.print(".");
                 //datatest.instance(i).setClassValue(score);
             }
         	System.out.println("!");
@@ -109,12 +149,34 @@ public class test {
    }
    if(svmBool){    
 	   System.out.println("SVM Classifier");
-        //svm classifier
-        LibSVM svmClassifier = new LibSVM();
-        
-        Evaluation svmev = new Evaluation(data);
-        svmev.crossValidateModel(svmClassifier, data, 2, new Random(1));
-        System.out.println(svmev.toSummaryString());
+        LibSVM svmClassifier = new LibSVM();   
+												//        Evaluation svmev = new Evaluation(data);
+												//        svmev.crossValidateModel(svmClassifier, data, 2, new Random(1));
+												//        System.out.println(svmev.toSummaryString());
+        //calc logloss
+        double logloss = 0;
+        svmClassifier.buildClassifier(knnTrain);
+        for(int i = 0; i < knnTest.numInstances();i++)
+        {
+            logloss += Math.log10(normProb(svmClassifier.distributionForInstance(knnTest.instance(i))[(int)knnTest.instance(i).classValue()]))/-knnTest.numInstances();
+           
+            if(i%(knnTest.numInstances()/100) == 0)System.out.print(".");
+        }
+    	System.out.println("!");
+    	System.out.println("1/2 SVM Logloss is: " + logloss);
+    	result_writer.write("1/2 SVM Logloss is: " + logloss + "\n");
+    	
+    	logloss = 0;
+        svmClassifier.buildClassifier(knnTest);
+        for(int i = 0; i < knnTrain.numInstances();i++)
+        {
+            logloss += Math.log10(normProb(svmClassifier.distributionForInstance(knnTrain.instance(i))[(int)knnTrain.instance(i).classValue()]))/-knnTrain.numInstances();
+           
+            if(i%(knnTrain.numInstances()/100) == 0)System.out.print(".");
+        }
+    	System.out.println("!");
+    	System.out.println("2/2 SVM Logloss is: " + logloss);
+    	result_writer.write("2/2 SVM Logloss is: " + logloss + "\n");
         
         if(submissionOutput){
         	CSVWriter writer_svm = new CSVWriter("./MachineLearning/result_svm.csv"); 
@@ -123,23 +185,33 @@ public class test {
             {
                 double[] vv= svmClassifier.distributionForInstance(datatest.instance(i));
                 writer_svm.addInstance(i, vv);
-                if(i%(datatest.numInstances()/100) == 0)System.out.print(i);
-                //datatest.instance(i).setClassValue(score);
+                if(i%(datatest.numInstances()/100) == 0)System.out.print(".");
             }
         	System.out.println("!");
         	writer_svm.closeFile();
         }
    }
    if(semBool){
-	   System.out.println("Semi Classifier");
+	   	System.out.println("Semi Classifier");
         //semisupervised classifier
-        Random rand = new Random(1234);
-    	Instances semiTrain = data.trainCV(2,1,rand);
-    	Instances semiTest = data.trainCV(2, 1, rand);
+   		Instances semiTrain = data.trainCV(2,0,rand);
+   		Instances semiTest = data.trainCV(2, 1, rand);
     	
-    	semisupervisedknn(semiTrain, semiTest);
+   		Instances semiTrain2 = semiTrain;
+   		Instances SemiTest2 = semiTest;
+   		
+   		
+    	double fold1 = semisupervisedknn(semiTrain, semiTest);
+    	System.out.println("1/2 Sem Logloss is: " + fold1 + "\n");
+    	result_writer.write("1/2 Sem Logloss is: " + fold1 + "\n");
+    	
+    	double fold2 = semisupervisedknn(SemiTest2, semiTrain2);
+    	System.out.println("2/2 Sem Logloss is: " + fold2 + "\n");
+    	result_writer.write("2/2 Sem Logloss is: " + fold2 + "\n");
    } 	
-    	
+   		Date end = new Date();
+   		result_writer.write("-+-"+ end.toString() + "-+-");
+   		result_writer.close();
        
 /*
         IBk k = new IBk();
